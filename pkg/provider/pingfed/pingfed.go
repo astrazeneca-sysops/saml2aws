@@ -141,12 +141,20 @@ func (ac *Client) handleLogin(ctx context.Context, doc *goquery.Document) (conte
 }
 
 func (ac *Client) handleOTP(ctx context.Context, doc *goquery.Document) (context.Context, *http.Request, error) {
+        loginDetails, ok := ctx.Value(ctxKey("login")).(*creds.LoginDetails)
+        if !ok {
+                return ctx, nil, fmt.Errorf("no context value for 'login'")
+        }
+
 	form, err := page.NewFormFromDocument(doc, "#otp-form")
 	if err != nil {
 		return ctx, nil, errors.Wrap(err, "error extracting OTP form")
 	}
 
-	token := prompter.StringRequired("Enter passcode")
+        token := loginDetails.MFAToken
+        if token == "" {
+	  token = prompter.StringRequired("Enter passcode")
+        }
 	form.Values.Set("otp", token)
 	req, err := form.BuildRequest()
 	return ctx, req, err
